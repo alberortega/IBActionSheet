@@ -281,8 +281,6 @@ CGRect adjustedScreenBounds()
         } case 2: {
             
             IBActionSheetButton *otherButton = [[IBActionSheetButton alloc] initWithBottomCornersRounded];
-            [otherButton setTitle:[titles objectAtIndex:1] forState:UIControlStateAll];
-            
             IBActionSheetButton *secondButton;
             
             if (title) {
@@ -291,9 +289,11 @@ CGRect adjustedScreenBounds()
                 secondButton = [[IBActionSheetButton alloc] initWithTopCornersRounded];
             }
             
-            [secondButton setTitle:[titles objectAtIndex:0] forState:UIControlStateAll];
-            [self.buttons insertObject:secondButton atIndex:0];
+            [self fillButton:secondButton object:[titles objectAtIndex:0]];
             [self fillButton:otherButton object:[titles objectAtIndex:1]];
+            [self.buttons insertObject:secondButton atIndex:0];
+            [self.buttons insertObject:otherButton atIndex:1];
+            
             break;
             
         } default: {
