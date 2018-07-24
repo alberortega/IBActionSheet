@@ -39,6 +39,14 @@ CGRect adjustedScreenBounds()
     return bounds;
 }
 
+CGRect landscapeAdjustedScreenBounds() {
+    CGRect bounds = [[UIScreen mainScreen] bounds];
+    CGFloat temp = bounds.size.width;
+    bounds.size.width = bounds.size.height;
+    bounds.size.height = temp;
+    return bounds;
+}
+
 
 @implementation IBActionSheet {
     
@@ -49,7 +57,10 @@ CGRect adjustedScreenBounds()
 #pragma mark IBActionSheet Set up methods
 
 - (id)init {
-    
+    return [self initWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithOrientation:(UIInterfaceOrientation)orientation {
     self = [self initWithFrame:CGRectMake(0, 0, 0, 0)];
     self.buttonResponse = IBActionSheetButtonResponseFadesOnPress;
     self.backgroundColor = [UIColor clearColor];
@@ -58,7 +69,7 @@ CGRect adjustedScreenBounds()
     self.cancelButtonIndex = -1;
     self.destructiveButtonIndex = -1;
     
-    CGRect bounds = adjustedScreenBounds();
+    CGRect bounds = (orientation == UIInterfaceOrientationLandscapeRight ? landscapeAdjustedScreenBounds() : adjustedScreenBounds());
     self.transparentView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(bounds), CGRectGetHeight(bounds))];
     self.transparentView.backgroundColor = [UIColor blackColor];
     self.transparentView.alpha = 0.0f;
@@ -101,10 +112,6 @@ CGRect adjustedScreenBounds()
     }
     return [self initWithTitle:title callback:callback cancelButtonTitle:cancelTitle destructiveButtonTitle:destructiveTitle otherButtonTitlesArray:titles];
 }
-
-
-
-
 
 - (id)initWithTitle:(NSString *)title delegate:(id<IBActionSheetDelegate>)delegate cancelButtonTitle:(NSString *)cancelTitle destructiveButtonTitle:(NSString *)destructiveTitle otherButtonTitlesArray:(NSArray *)otherTitlesArray {
     
@@ -230,8 +237,12 @@ CGRect adjustedScreenBounds()
 }
 
 - (id)initWithTitle:(NSString *)title callback:(IBActionCallback)callback cancelButtonTitle:(NSString *)cancelTitle destructiveButtonTitle:(NSString *)destructiveTitle otherButtonTitlesArray:(NSArray *)otherTitlesArray {
+    return [self initWithTitle: title callback: callback cancelButtonTitle: cancelTitle destructiveButtonTitle: destructiveTitle otherButtonTitlesArray: otherTitlesArray orientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithTitle:(NSString *)title callback:(IBActionCallback)callback cancelButtonTitle:(NSString *)cancelTitle destructiveButtonTitle:(NSString *)destructiveTitle otherButtonTitlesArray:(NSArray *)otherTitlesArray orientation:(UIInterfaceOrientation)orientation {
     
-    self = [self init];
+    self = [self initWithOrientation: orientation];
     self.callback = callback;
     
     NSMutableArray* titles = [otherTitlesArray mutableCopy];
@@ -247,7 +258,7 @@ CGRect adjustedScreenBounds()
     
     // set up cancel button
     if (cancelTitle) {
-        IBActionSheetButton *cancelButton = [[IBActionSheetButton alloc] initWithAllCornersRounded];
+        IBActionSheetButton *cancelButton = [[IBActionSheetButton alloc] initWithAllCornersRoundedWithOrientation: orientation];
         cancelButton.titleLabel.font = [UIFont boldSystemFontOfSize:21];
         [cancelButton setTitle:cancelTitle forState:UIControlStateAll];
         [self.buttons addObject:cancelButton];
@@ -268,9 +279,9 @@ CGRect adjustedScreenBounds()
             IBActionSheetButton *otherButton;
             
             if (title) {
-                otherButton = [[IBActionSheetButton alloc] initWithBottomCornersRounded];
+                otherButton = [[IBActionSheetButton alloc] initWithBottomCornersRoundedWithOrientation: orientation];
             } else {
-                otherButton = [[IBActionSheetButton alloc] initWithAllCornersRounded];
+                otherButton = [[IBActionSheetButton alloc] initWithAllCornersRoundedWithOrientation: orientation];
             }
             
             [self fillButton:otherButton object:[titles objectAtIndex:0]];
@@ -280,13 +291,13 @@ CGRect adjustedScreenBounds()
             
         } case 2: {
             
-            IBActionSheetButton *otherButton = [[IBActionSheetButton alloc] initWithBottomCornersRounded];
+            IBActionSheetButton *otherButton = [[IBActionSheetButton alloc] initWithBottomCornersRoundedWithOrientation: orientation];
             IBActionSheetButton *secondButton;
             
             if (title) {
-                secondButton = [[IBActionSheetButton alloc] init];
+                secondButton = [[IBActionSheetButton alloc] initWithOrientation: orientation];
             } else {
-                secondButton = [[IBActionSheetButton alloc] initWithTopCornersRounded];
+                secondButton = [[IBActionSheetButton alloc] initWithTopCornersRoundedWithOrientation: orientation];
             }
             
             [self fillButton:secondButton object:[titles objectAtIndex:0]];
@@ -298,14 +309,14 @@ CGRect adjustedScreenBounds()
             
         } default: {
             
-            IBActionSheetButton *bottomButton = [[IBActionSheetButton alloc] initWithBottomCornersRounded];
+            IBActionSheetButton *bottomButton = [[IBActionSheetButton alloc] initWithBottomCornersRoundedWithOrientation: orientation];
             [self fillButton:bottomButton object:[titles lastObject]];
             IBActionSheetButton *topButton;
             
             if (title) {
-                topButton = [[IBActionSheetButton alloc] init];
+                topButton = [[IBActionSheetButton alloc] initWithOrientation: orientation];
             } else {
-                topButton = [[IBActionSheetButton alloc] initWithTopCornersRounded];
+                topButton = [[IBActionSheetButton alloc] initWithTopCornersRoundedWithOrientation: orientation];
             }
             
             [self fillButton:topButton object:[titles objectAtIndex:0]];
@@ -313,7 +324,7 @@ CGRect adjustedScreenBounds()
             
             int whereToStop = (int)titles.count - 1;
             for (int i = 1; i < whereToStop; ++i) {
-                IBActionSheetButton *middleButton = [[IBActionSheetButton alloc] init];
+                IBActionSheetButton *middleButton = [[IBActionSheetButton alloc] initWithOrientation: orientation];
 
                 [self fillButton:middleButton object:[titles objectAtIndex:i]];
                 [self.buttons insertObject:middleButton atIndex:i];
@@ -345,7 +356,7 @@ CGRect adjustedScreenBounds()
     if (title) {
         self.title = title;
     } else {
-        [self setUpTheActionSheet];
+        [self setUpTheActionSheetWithOrientation: orientation];
     }
     
     return self;
@@ -353,17 +364,20 @@ CGRect adjustedScreenBounds()
 
 - (void)fillButton:(IBActionSheetButton *)button object:(NSObject *)obj {
     if ([obj isKindOfClass:[NSString class]]) {
-        [button setTitle:obj forState:UIControlStateAll];
+        [button setTitle:obj forState: UIControlStateAll];
     } else {
-        [button setImage:obj forState:UIControlStateAll];
+        [button setImage:obj forState: UIControlStateAll];
     }
 }
 
-
 - (void)setUpTheActionSheet {
+    [self setUpTheActionSheetWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (void)setUpTheActionSheetWithOrientation:(UIInterfaceOrientation)orientation {
     
     float height;
-    float width = CGRectGetWidth(adjustedScreenBounds());
+    float width = (orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetWidth(landscapeAdjustedScreenBounds()) : CGRectGetWidth(adjustedScreenBounds()));
     
     if (self.hasCancelButton) {
         height = 60.0;
@@ -378,7 +392,7 @@ CGRect adjustedScreenBounds()
         height += CGRectGetHeight(self.titleView.frame) - 45;
     }
     
-    CGFloat spaceOfView = UIScreen.mainScreen.bounds.size.height - 40;
+    CGFloat spaceOfView = (orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetHeight(landscapeAdjustedScreenBounds()) : CGRectGetHeight(adjustedScreenBounds())) - 40;
     CGFloat maxHeight = MIN(height, spaceOfView);
     
     self.frame = CGRectMake(0, 0, width, maxHeight);
@@ -402,18 +416,18 @@ CGRect adjustedScreenBounds()
     // Added Scrollview
 
     CGFloat heightScrollView = 44.5 * (self.buttons.count - 1);
-    CGFloat spaceOfButtons = UIScreen.mainScreen.bounds.size.height - 100;
+    CGFloat spaceOfButtons = (orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetHeight(landscapeAdjustedScreenBounds()) : CGRectGetHeight(adjustedScreenBounds())) - 100;
     if (self.titleView) {
         spaceOfButtons -= CGRectGetHeight(self.titleView.frame);
     }
     maxHeight = MIN(heightScrollView, spaceOfButtons);
-    UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, UIScreen.mainScreen.bounds.size.width, maxHeight)];
+    UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, (orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetWidth(landscapeAdjustedScreenBounds()) : CGRectGetWidth(adjustedScreenBounds())), maxHeight)];
     [self addSubview:scrollView];
     scrollView.showsHorizontalScrollIndicator = NO;
     scrollView.showsVerticalScrollIndicator = NO;
     scrollView.clipsToBounds = YES;
-    [scrollView setFrame:CGRectMake(0, pointOfReference.y + 24 - maxHeight, UIScreen.mainScreen.bounds.size.width, maxHeight)];
-    [scrollView setContentSize:CGSizeMake(UIScreen.mainScreen.bounds.size.width, heightScrollView)];
+    [scrollView setFrame:CGRectMake(0, pointOfReference.y + 24 - maxHeight, (orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetWidth(landscapeAdjustedScreenBounds()) : CGRectGetWidth(adjustedScreenBounds())), maxHeight)];
+    [scrollView setContentSize:CGSizeMake((orientation == UIInterfaceOrientationLandscapeRight ? CGRectGetWidth(landscapeAdjustedScreenBounds()) : CGRectGetWidth(adjustedScreenBounds())), heightScrollView)];
     
     
     for (int i = 0; i <= whereToStop; ++i) {
@@ -667,11 +681,10 @@ CGRect adjustedScreenBounds()
     float x = CGRectGetWidth(theView.frame) / 2.0;
     
     self.center = CGPointMake(x, height + CGRectGetHeight(self.frame) / 2.0);
+    self.transparentView.frame = theView.frame;
     self.transparentView.center = CGPointMake(x, height / 2.0);
     
-    
     if (SYSTEM_VERSION_LESS_THAN(@"7.0")) {
-        
         
         [UIView animateWithDuration:0.3f
                               delay:0.0f
@@ -695,6 +708,59 @@ CGRect adjustedScreenBounds()
                              self.center = CGPointMake(x, height - CGRectGetHeight(self.frame) / 2.0);
                              
                          } completion:^(BOOL finished) {
+                             self.visible = YES;
+                         }];
+    }
+}
+
+- (void)landscapeShowInView:(UIView *)theView {
+    UIVisualEffect *blurEffect;
+    blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleLight];
+    
+    if (NSClassFromString(@"UIVisualEffectView") && self.blurBackground) {
+        UIVisualEffectView *visualEffectView;
+        visualEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        visualEffectView.frame = theView.bounds;
+        visualEffectView.tag = 821;
+        [theView addSubview: visualEffectView];
+        visualEffectView.userInteractionEnabled = NO;
+    }
+
+    self.transform = CGAffineTransformMakeRotation(M_PI_2);
+    self.frame = CGRectMake(-self.frame.size.width, 0, self.frame.size.width, self.frame.size.height);
+    [theView addSubview: self];
+    [theView insertSubview: self.transparentView belowSubview: self];
+    
+    float x = CGRectGetWidth(theView.frame) / 2.0;
+    
+    self.transparentView.frame = theView.frame;
+    self.transparentView.center = CGPointMake(-x, theView.frame.size.height / 2.0);
+
+    if (SYSTEM_VERSION_LESS_THAN(@"7.0")) {
+        
+        [UIView animateWithDuration: 0.3f
+                              delay: 0.0f
+                            options: UIViewAnimationOptionCurveEaseOut
+                         animations: ^() {
+                             self.transparentView.alpha = self.alphaTransparentView;
+                             self.frame = CGRectMake(0, 0, self.frame.size.width, self.frame.size.height);
+                             
+                         } completion:^(BOOL finished) {
+                             self.visible = YES;
+                         }];
+    } else {
+        
+        [UIView animateWithDuration: 0.3f
+                              delay: 0
+             usingSpringWithDamping: 0.85f
+              initialSpringVelocity: 1.0f
+                            options: UIViewAnimationOptionCurveLinear
+                         animations: ^{
+                             self.transparentView.alpha = self.alphaTransparentView;
+                             self.transparentView.center = CGPointMake(x, theView.frame.size.height / 2.0);
+                             self.frame = CGRectMake(0, 0, self.frame.size.width, self.frame.size.height);
+
+                         } completion: ^(BOOL finished) {
                              self.visible = YES;
                          }];
     }
@@ -926,10 +992,13 @@ CGRect adjustedScreenBounds()
 
 @implementation IBActionSheetButton
 
-
 - (id)init {
+    return [self initWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithOrientation:(UIInterfaceOrientation)orientation {
     
-    float width = adjustedScreenBounds().size.width;
+    float width = (orientation == UIInterfaceOrientationLandscapeRight ? landscapeAdjustedScreenBounds().size.width : adjustedScreenBounds().size.width);
     self = [self initWithFrame:CGRectMake(0, 0, width - 16, 44)];
     
     self.backgroundColor = [UIColor whiteColor];
@@ -947,22 +1016,34 @@ CGRect adjustedScreenBounds()
 }
 
 - (id)initWithTopCornersRounded {
-    self = [self init];
-    [self setMaskTo:self byRoundingCorners:UIRectCornerTopLeft | UIRectCornerTopRight];
+    return [self initWithTopCornersRoundedWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithTopCornersRoundedWithOrientation:(UIInterfaceOrientation)orientation {
+    self = [self initWithOrientation: orientation];
+    [self setMaskTo: self byRoundingCorners: UIRectCornerTopLeft | UIRectCornerTopRight];
     self.cornerType = IBActionSheetButtonCornerTypeTopCornersRounded;
     return self;
 }
 
 - (id)initWithBottomCornersRounded {
-    self = [self init];
-    [self setMaskTo:self byRoundingCorners:UIRectCornerBottomLeft | UIRectCornerBottomRight];
+    return [self initWithBottomCornersRoundedWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithBottomCornersRoundedWithOrientation:(UIInterfaceOrientation)orientation {
+    self = [self initWithOrientation: orientation];
+    [self setMaskTo: self byRoundingCorners: UIRectCornerBottomLeft | UIRectCornerBottomRight];
     self.cornerType = IBActionSheetButtonCornerTypeBottomCornersRounded;
     return self;
 }
 
 - (id)initWithAllCornersRounded {
-    self = [self init];
-    [self setMaskTo:self byRoundingCorners:UIRectCornerTopLeft | UIRectCornerTopRight | UIRectCornerBottomLeft | UIRectCornerBottomRight];
+    return [self initWithAllCornersRoundedWithOrientation: UIInterfaceOrientationUnknown];
+}
+
+- (id)initWithAllCornersRoundedWithOrientation:(UIInterfaceOrientation)orientation {
+    self = [self initWithOrientation: orientation];
+    [self setMaskTo: self byRoundingCorners: UIRectCornerTopLeft | UIRectCornerTopRight | UIRectCornerBottomLeft | UIRectCornerBottomRight];
     self.cornerType = IBActionSheetButtonCornerTypeAllCornersRounded;
     return self;
 }
